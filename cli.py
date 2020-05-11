@@ -18,12 +18,12 @@ def cli():
     pass
 
 
-def get_user(username: str) -> Dict:
+def get_users() -> Dict:
     users_resp = requests.get(urljoin(BASE, "/Users"), params={"api_key": KEY})
     if users_resp.status_code == 200:
         users = {user["Name"]: user for user in users_resp.json()}
 
-        return users[username]
+        return users
     else:
         raise RuntimeError(
             "Invalid response code received: {users_resp.status_code}"
@@ -33,7 +33,7 @@ def get_user(username: str) -> Dict:
 @cli.command("get-user")
 @click.argument("username", type=str)
 def get_user_cmd(username: str):
-    pprint(get_user(username))
+    pprint(get_users()[username])
 
 
 def get_folders() -> Dict:
@@ -61,7 +61,29 @@ def get_folders_cmd():
 @cli.command("enable-folder-globally")
 @click.argument("folder", type=str)
 def enable_folder_globally(folder: str):
-    pass
+    users = get_users()
+    folders = get_folders()
+    folder_id = folders[folder]
+
+    for user in users:
+        user_id = users[user]["Id"]
+        policy = users[user]["Policy"]
+
+        if not policy["EnableAllFolders"]:
+            enabled_folders = policy["EnabledFolders"]
+            if folder_id not in enabled_folders:
+                print(f"Enabling {folder} for {user}")
+                enabled_folders.append(folder_id)
+                update_resp = requests.post(
+                    urljoin(BASE, f"/Users/{user_id}/Policy"),
+                    params={"api_key": KEY},
+                    json=policy,
+                )
+                resp_code = update_resp.status_code
+                if resp_code == 204:
+                    print(f"Updated policy for {user} successfully!")
+                else:
+                    print(f"Update failed with status {resp_code}")
 
 
 if __name__ == "__main__":
