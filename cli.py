@@ -3,6 +3,7 @@
 import os
 from pprint import pprint
 import sys
+from typing import Dict
 from urllib.parse import urljoin
 
 import click
@@ -17,20 +18,25 @@ def cli():
     pass
 
 
-@cli.command("get-user")
-@click.argument("username", type=str)
-def get_user(username: str):
+def get_user(username: str) -> Dict:
     users_resp = requests.get(urljoin(BASE, "/Users"), params={"api_key": KEY})
     if users_resp.status_code == 200:
         users = {user["Name"]: user for user in users_resp.json()}
 
-        pprint(users[username])
+        return users[username]
     else:
-        print("Invalid response code received: {users_resp.status_code}")
+        raise RuntimeError(
+            "Invalid response code received: {users_resp.status_code}"
+        )
 
 
-@cli.command("get-folders")
-def get_folders():
+@cli.command("get-user")
+@click.argument("username", type=str)
+def get_user_cmd(username: str):
+    pprint(get_user(username))
+
+
+def get_folders() -> Dict:
     folders_resp = requests.get(
         urljoin(BASE, "/Library/MediaFolders"), params={"api_key": KEY}
     )
@@ -40,9 +46,22 @@ def get_folders():
             for folder in folders_resp.json()["Items"]
         }
 
-        pprint(folders)
+        return folders
     else:
-        print("Invalid response code received: {folders_resp.status_code}")
+        raise RuntimeError(
+            "Invalid response code received: {folders_resp.status_code}"
+        )
+
+
+@cli.command("get-folders")
+def get_folders_cmd():
+    pprint(get_folders())
+
+
+@cli.command("enable-folder-globally")
+@click.argument("folder", type=str)
+def enable_folder_globally(folder: str):
+    pass
 
 
 if __name__ == "__main__":
