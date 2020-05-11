@@ -29,5 +29,21 @@ def get_user(username: str):
         print("Invalid response code received: {users_resp.status_code}")
 
 
+@cli.command("get-folders")
+def get_folders():
+    folders_resp = requests.get(
+        urljoin(BASE, "/Library/MediaFolders"), params={"api_key": KEY}
+    )
+    if folders_resp.status_code == 200:
+        folders = {
+            folder["Name"]: folder["Id"]
+            for folder in folders_resp.json()["Items"]
+        }
+
+        pprint(folders)
+    else:
+        print("Invalid response code received: {folders_resp.status_code}")
+
+
 if __name__ == "__main__":
     sys.exit(cli())
